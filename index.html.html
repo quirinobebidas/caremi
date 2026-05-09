@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CAREMI — Pedidos</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Georgia,serif;background:#f5f5f5;color:#111;min-height:100vh}
+/* LOGIN */
+#screen-login{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:1rem}
+.login-box{background:#fff;border:1px solid #111;padding:2.5rem 2rem;max-width:380px;width:100%;text-align:center}
+.login-logo{font-size:36px;letter-spacing:6px;text-transform:uppercase;margin-bottom:4px}
+.login-sub{font-size:11px;letter-spacing:2px;color:#888;text-transform:uppercase;margin-bottom:2rem}
+.login-welcome{font-size:13px;color:#888;margin-bottom:1.5rem;line-height:1.5}
+.login-box input{width:100%;padding:12px;border:1px solid #111;font-size:18px;text-align:center;letter-spacing:4px;font-family:Georgia,serif;outline:none;margin-bottom:12px}
+.login-box input:focus{background:#f9f9f9}
+.login-btn{width:100%;padding:13px;background:#111;color:#fff;border:none;font-size:12px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;font-family:Georgia,serif}
+.login-btn:hover{opacity:0.8}
+.login-error{font-size:13px;color:#a32d2d;margin-top:10px;display:none;font-family:Georgia,serif}
+.admin-link{margin-top:2rem;font-size:11px;color:#ccc;letter-spacing:1px;text-transform:uppercase;cursor:pointer}
+/* ADMIN */
+#screen-admin{display:none;max-width:860px;margin:0 auto;padding:1.5rem 1rem}
+.admin-header{background:#111;color:#fff;padding:1.2rem 1.5rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between}
+.admin-header h1{font-size:18px;letter-spacing:3px;text-transform:uppercase;font-weight:400}
+.admin-header button{background:transparent;border:1px solid #fff;color:#fff;padding:5px 14px;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-family:Georgia,serif}
+.admin-header button:hover{background:#fff;color:#111}
+.admin-box{background:#fff;border:1px solid #111;padding:1.25rem;margin-bottom:1.25rem}
+.admin-box h3{font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:1rem;color:#111;font-weight:400;border-bottom:1px solid #ddd;padding-bottom:10px}
+.upload-zone{border:1.5px dashed #aaa;padding:2rem;text-align:center;cursor:pointer;transition:border-color 0.15s;margin-bottom:1rem}
+.upload-zone:hover{border-color:#111}
+.upload-zone strong{display:block;font-size:14px;color:#111;margin-bottom:6px;font-weight:400}
+.upload-zone p{font-size:13px;color:#888}
+#file-upload{display:none}
+.admin-table{width:100%;border-collapse:collapse;font-size:13px}
+.admin-table th{text-align:left;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#888;padding:8px 10px;border-bottom:1px solid #111;font-weight:400}
+.admin-table td{padding:8px 10px;border-bottom:0.5px solid #eee;color:#111;font-family:Georgia,serif}
+.admin-table tr:last-child td{border-bottom:none}
+.admin-table tr:hover td{background:#f9f9f9}
+.btn-del{background:none;border:none;color:#a32d2d;cursor:pointer;font-size:11px;letter-spacing:1px;text-transform:uppercase;font-family:Georgia,serif;padding:2px 6px}
+.btn-del:hover{text-decoration:underline}
+.add-form{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;margin-bottom:1rem;align-items:end}
+.add-form input{padding:8px 10px;border:1px solid #ccc;font-size:13px;font-family:Georgia,serif;outline:none;width:100%}
+.add-form input:focus{border-color:#111}
+.add-form label{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#888;display:block;margin-bottom:4px;font-family:Georgia,serif}
+.search-admin{width:100%;padding:8px 12px;border:1px solid #ccc;font-size:13px;font-family:Georgia,serif;outline:none;margin-bottom:12px}
+.search-admin:focus{border-color:#111}
+.admin-actions{display:flex;gap:10px;margin-top:1rem;flex-wrap:wrap}
+.admin-btn{padding:9px 18px;background:#111;color:#fff;border:1px solid #111;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-family:Georgia,serif}
+.admin-btn:hover{opacity:0.8}
+.admin-btn.outline{background:#fff;color:#111}
+.admin-btn.outline:hover{background:#111;color:#fff}
+.admin-btn.danger{background:#fff;color:#a32d2d;border-color:#a32d2d}
+.admin-btn.danger:hover{background:#a32d2d;color:#fff}
+.template-hint{font-size:12px;color:#888;margin-top:8px;font-family:Georgia,serif;font-style:italic}
+.admin-stat strong{color:#111;font-weight:400}
+.admin-stat{font-size:13px;color:#888;font-family:Georgia,serif}
+.empty-admin{font-size:13px;color:#aaa;text-align:center;padding:1.5rem;font-family:Georgia,serif}
+.status-msg{font-size:12px;padding:8px 12px;margin-top:8px;display:none;font-family:Georgia,serif}
+.status-ok{background:#eaf3de;color:#3b6d11;border:1px solid #97c459}
+.status-err{background:#fcebeb;color:#a32d2d;border:1px solid #f09595}
+/* APP */
+#screen-app{display:none}
+.app{max-width:960px;margin:0 auto;padding:1.5rem 1rem}
+.header{background:#111;color:#fff;padding:1.4rem 2rem;margin-bottom:1.25rem;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.header h1{font-size:34px;font-weight:400;letter-spacing:5px;text-transform:uppercase}
+.header-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.header-right .fecha{font-size:13px;color:#fff;letter-spacing:1px}
+.header-right .sub{font-size:11px;letter-spacing:2px;color:#aaa;text-transform:uppercase}
+.header-user{display:flex;align-items:center;gap:10px;margin-bottom:1.25rem;padding:10px 14px;background:#fff;border:1px solid #111;font-size:13px;font-family:Georgia,serif;flex-wrap:wrap;justify-content:space-between}
+.header-user span{color:#888}
+.header-user strong{color:#111;font-weight:400}
+.logout-btn{background:none;border:1px solid #ccc;color:#888;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;padding:4px 10px;font-family:Georgia,serif}
+.logout-btn:hover{border-color:#111;color:#111}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:1rem}
+.tab{background:#fff;border:1px solid #111;padding:5px 13px;font-size:12px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;color:#111;font-family:Georgia,serif;transition:all 0.12s}
+.tab.active,.tab:hover{background:#111;color:#fff}
+.search-bar{width:100%;padding:10px 14px;border:1px solid #111;font-size:14px;background:#fff;color:#111;margin-bottom:1rem;font-family:Georgia,serif;outline:none}
+.search-bar:focus{background:#f9f9f9}
+.products-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:1px;background:#111;border:1px solid #111;margin-bottom:1.5rem}
+.product-card{background:#fff;padding:1rem;display:flex;flex-direction:column;gap:8px}
+.product-card:hover{background:#f9f9f9}
+.cat-badge{font-size:10px;color:#888;letter-spacing:1px;text-transform:uppercase}
+.product-name{font-size:12.5px;color:#111;line-height:1.45}
+.product-price{font-size:17px;color:#111}
+.product-oferta{font-size:10px;color:#fff;background:#111;padding:2px 7px;letter-spacing:1.5px;text-transform:uppercase;display:inline-block;align-self:flex-start}
+.qty-row{display:flex;align-items:center;gap:8px;margin-top:auto}
+.qty-btn{width:28px;height:28px;border:1px solid #111;background:#fff;cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;color:#111;flex-shrink:0;transition:all 0.1s}
+.qty-btn:hover{background:#111;color:#fff}
+.qty-display{font-size:14px;min-width:22px;text-align:center;color:#111}
+.section-box{background:#fff;border:1px solid #111;padding:1.25rem;margin-bottom:1.25rem}
+.section-box h3{font-size:12px;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:1rem;color:#111;font-weight:400;border-bottom:1px solid #ddd;padding-bottom:10px}
+.cart-empty{font-size:13px;color:#999;text-align:center;padding:1.2rem 0}
+.cart-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid #e8e8e8;font-size:13px}
+.cart-item:last-child{border-bottom:none}
+.cart-item-name{flex:1;color:#111}
+.cart-item-qty{color:#999;margin:0 14px}
+.cart-item-price{font-weight:500;color:#111}
+.cart-total{display:flex;justify-content:space-between;font-size:16px;padding-top:12px;color:#111;border-top:1px solid #111;margin-top:10px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-field{display:flex;flex-direction:column;gap:5px}
+.form-field.full{grid-column:1/-1}
+.form-field label{font-size:11px;color:#888;letter-spacing:1.5px;text-transform:uppercase}
+.form-field input{padding:9px 12px;border:1px solid #ccc;font-size:14px;background:#fff;color:#111;font-family:Georgia,serif;outline:none}
+.form-field input:focus{border-color:#111}
+.form-field input[readonly]{background:#f5f5f5;color:#555;border-color:#ddd;cursor:default}
+.send-btn{width:100%;padding:14px;background:#111;color:#fff;border:none;font-size:13px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;font-family:Georgia,serif}
+.send-btn:hover{opacity:0.8}
+.send-btn:disabled{opacity:0.35;cursor:not-allowed}
+.success-banner{background:#fff;color:#111;border:1px solid #111;padding:1rem;text-align:center;font-size:13px;display:none;margin-top:1rem;letter-spacing:1px}
+.error-banner{background:#f5f5f5;color:#111;border:1px solid #aaa;padding:1rem;text-align:center;font-size:13px;display:none;margin-top:1rem}
+@media(max-width:600px){
+  .header h1{font-size:24px;letter-spacing:3px}
+  .form-grid{grid-template-columns:1fr}
+  .products-grid{grid-template-columns:1fr 1fr}
+  .add-form{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="screen-login">
+  <div class="login-box">
+    <div class="login-logo">Caremi</div>
+    <div class="login-sub">Lista de precios vigente</div>
+    <p class="login-welcome">Ingresá tu número de cliente para acceder a la lista y realizar tu pedido.</p>
+    <input type="text" id="login-input" placeholder="Número de cliente" maxlength="20"
+      onkeydown="if(event.key==='Enter')doLogin()" autocomplete="off" />
+    <button class="login-btn" onclick="doLogin()">Ingresar</button>
+    <p class="login-error" id="login-error">Número de cliente no encontrado. Verificá e intentá nuevamente.</p>
+    <p class="admin-link" onclick="showAdmin()">● Administrador</p>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div id="screen-admin">
+  <div class="admin-header">
+    <h1>Administrador — Caremi</h1>
+    <button onclick="exitAdmin()">← Volver al inicio</button>
+  </div>
+
+  <div class="admin-box">
+    <h3>Agregar cliente</h3>
+    <div class="add-form">
+      <div><label>Nro. de cliente</label><input type="text" id="add-nro" placeholder="1001" /></div>
+      <div><label>Nombre y apellido</label><input type="text" id="add-nombre" placeholder="Juan García" /></div>
+      <div><label>Vendedor</label><input type="text" id="add-vendedor" placeholder="María López" /></div>
+      <div style="display:flex;align-items:flex-end"><button class="admin-btn" onclick="addClienteManual()" style="white-space:nowrap">+ Agregar</button></div>
+    </div>
+    <div id="add-status" class="status-msg"></div>
+  </div>
+
+  <div class="admin-box">
+    <h3>Importar desde Excel o CSV</h3>
+    <div class="upload-zone" onclick="document.getElementById('file-upload').click()" id="drop-zone">
+      <strong>Arrastrá el archivo o hacé click aquí</strong>
+      <p>Formatos aceptados: .xlsx · .xls · .csv</p>
+    </div>
+    <input type="file" id="file-upload" accept=".xlsx,.xls,.csv" onchange="importFile(this)" />
+    <p class="template-hint">El archivo debe tener columnas: <strong>NRO_CLIENTE</strong>, <strong>NOMBRE</strong>, <strong>VENDEDOR</strong></p>
+    <div class="admin-actions">
+      <button class="admin-btn outline" onclick="downloadTemplate()">Descargar plantilla Excel</button>
+    </div>
+    <div id="import-status" class="status-msg"></div>
+  </div>
+
+  <div class="admin-box">
+    <h3>Clientes registrados — <span id="clientes-count" class="admin-stat"></span></h3>
+    <input type="text" class="search-admin" placeholder="Buscar por número, nombre o vendedor..." oninput="renderAdminTable(this.value)" />
+    <div id="admin-table-wrap"></div>
+    <div class="admin-actions">
+      <button class="admin-btn outline" onclick="exportClientes()">Exportar lista</button>
+      <button class="admin-btn danger" onclick="clearAll()">Borrar todos</button>
+    </div>
+  </div>
+
+  <div class="admin-box">
+    <h3>Contraseña de administrador</h3>
+    <div class="add-form" style="grid-template-columns:1fr auto">
+      <div><label>Nueva contraseña</label><input type="password" id="new-pass" placeholder="••••••" /></div>
+      <div style="display:flex;align-items:flex-end"><button class="admin-btn" onclick="changePass()">Guardar</button></div>
+    </div>
+    <div id="pass-status" class="status-msg"></div>
+  </div>
+</div>
+
+<!-- APP PEDIDOS -->
+<div id="screen-app">
+  <div class="app">
+    <div class="header">
+      <h1>Caremi</h1>
+      <div class="header-right">
+        <span class="sub">Lista de precios vigente</span>
+        <span class="fecha" id="app-fecha"></span>
+      </div>
+    </div>
+
+    <div class="header-user">
+      <div>
+        <span>Cliente </span><strong id="user-nro"></strong>
+        &nbsp;·&nbsp;<strong id="user-nombre"></strong>
+        &nbsp;·&nbsp;<span>Vendedor: </span><strong id="user-vendedor"></strong>
+      </div>
+      <button class="logout-btn" onclick="doLogout()">Salir</button>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="filterCat('Todos')">Todos</button>
+      <button class="tab" onclick="filterCat('Ofertas')">Ofertas</button>
+      <button class="tab" onclick="filterCat('Vinos')">Vinos</button>
+      <button class="tab" onclick="filterCat('Champagne')">Champagne</button>
+      <button class="tab" onclick="filterCat('Whisky')">Whisky</button>
+      <button class="tab" onclick="filterCat('Gin')">Gin</button>
+      <button class="tab" onclick="filterCat('Vodka')">Vodka</button>
+      <button class="tab" onclick="filterCat('Fernet')">Fernet</button>
+      <button class="tab" onclick="filterCat('Ron')">Ron</button>
+      <button class="tab" onclick="filterCat('Aperitivos')">Aperitivos</button>
+      <button class="tab" onclick="filterCat('Latas')">Latas</button>
+      <button class="tab" onclick="filterCat('Licores')">Licores</button>
+    </div>
+
+    <input class="search-bar" type="text" placeholder="Buscar producto..." oninput="filterSearch(this.value)" />
+    <div class="products-grid" id="products-grid"></div>
+
+    <div class="section-box">
+      <h3>Tu pedido</h3>
+      <div id="cart-items"><p class="cart-empty">Todavía no agregaste productos.</p></div>
+      <div class="cart-total" id="cart-total" style="display:none">
+        <span>Total estimado</span><span id="total-price">$0</span>
+      </div>
+    </div>
+
+    <div class="section-box">
+      <h3>Tus datos</h3>
+      <div class="form-grid">
+        <div class="form-field"><label>Nombre y apellido</label><input type="text" id="f-nombre" readonly /></div>
+        <div class="form-field"><label>Número de cliente</label><input type="text" id="f-nrocliente" readonly /></div>
+        <div class="form-field"><label>Vendedor</label><input type="text" id="f-vendedor" readonly /></div>
+        <div class="form-field"><label>DNI</label><input type="text" id="f-dni" placeholder="12345678" /></div>
+        <div class="form-field full"><label>Dirección de entrega</label><input type="text" id="f-direccion" placeholder="Av. Corrientes 1234, Piso 2" /></div>
+        <div class="form-field"><label>Teléfono</label><input type="tel" id="f-telefono" placeholder="1155667788" /></div>
+        <div class="form-field"><label>Email</label><input type="email" id="f-email" placeholder="juan@gmail.com" /></div>
+        <div class="form-field full"><label>Notas adicionales (opcional)</label><input type="text" id="f-notas" placeholder="Horario preferido, observaciones..." /></div>
+      </div>
+    </div>
+
+    <button class="send-btn" id="send-btn" onclick="sendOrder()">Enviar pedido</button>
+    <div class="success-banner" id="success-banner">Pedido enviado correctamente. Te contactaremos pronto para confirmar.</div>
+    <div class="error-banner" id="error-banner">Hubo un error. Intentá de nuevo o comunicate directamente.</div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CONFIGURACIÓN
+// ============================================================
+const FECHA_LISTA = "08/05/2025";          // Actualizar con cada nueva lista
+const ADMIN_PASS_DEFAULT = "caremi2025";   // Contraseña inicial del admin
+const EMAIL_DESTINO = "ventas@quirinobebidas.com.ar";
+
+// ============================================================
+// PRODUCTOS — actualizar precios aquí
+// ============================================================
+const PRODUCTS = [
+  {name:"Agua Sierra de los Padres Saborizada (6 x 500cc)",price:2999,cat:"Ofertas",oferta:true},
+  {name:"Johnnie Walker Black 1 litro",price:51200,cat:"Ofertas",oferta:true},
+  {name:"Aperol 750cc",price:8572,cat:"Ofertas",oferta:true},
+  {name:"Champagne Mumm Lata (E.Brut / Rosé / Léger / Léger Spritz)",price:2027,cat:"Ofertas",oferta:true},
+  {name:"Fernet 1882",price:8454,cat:"Ofertas",oferta:true},
+  {name:"Latitud Malbec / Cabernet / Chardonnay / Malbec Rosé",price:4521,cat:"Ofertas",oferta:true},
+  {name:"Vodka Skyy Regular",price:6799,cat:"Ofertas",oferta:true},
+  {name:"Vodka Skyy Blood Orange",price:6499,cat:"Ofertas",oferta:true},
+  {name:"Jack Daniels Old No.7 700cc",price:32726,cat:"Ofertas",oferta:true},
+  {name:"Vino Reserva de los Andes Malbec",price:2300,cat:"Vinos",oferta:false},
+  {name:"Vino Cuesta de Madero Roble Malbec",price:3746,cat:"Vinos",oferta:false},
+  {name:"Vino Cuesta de Madero Roble Cabernet",price:3746,cat:"Vinos",oferta:false},
+  {name:"Benjamín Chardonnay 750cc",price:3528,cat:"Vinos",oferta:false},
+  {name:"Norton Cosecha Tardía Blanco",price:3591,cat:"Vinos",oferta:false},
+  {name:"Salentein Reserva Malbec",price:9438,cat:"Vinos",oferta:false},
+  {name:"DV Catena Cabernet Malbec",price:10350,cat:"Vinos",oferta:false},
+  {name:"DV Catena Malbec Malbec",price:15000,cat:"Vinos",oferta:false},
+  {name:"Saint Felicien Malbec",price:8050,cat:"Vinos",oferta:false},
+  {name:"Nicasia Blend Malbec",price:6313,cat:"Vinos",oferta:false},
+  {name:"Nicasia Cabernet Malbec",price:6313,cat:"Vinos",oferta:false},
+  {name:"Los Alamos Malbec",price:5199,cat:"Vinos",oferta:false},
+  {name:"Angélica Cabernet",price:19435,cat:"Vinos",oferta:false},
+  {name:"Angélica Merlot",price:19435,cat:"Vinos",oferta:false},
+  {name:"Angélica Malbec",price:21908,cat:"Vinos",oferta:false},
+  {name:"Malbec Argentino 750cc",price:53648,cat:"Vinos",oferta:false},
+  {name:"Estiba Reservada 2007",price:500000,cat:"Vinos",oferta:false},
+  {name:"Estiba Reservada 2002",price:700000,cat:"Vinos",oferta:false},
+  {name:"Luigi Bosca Malbec",price:11433,cat:"Vinos",oferta:false},
+  {name:"Cordero con Piel de Lobo Malbec",price:3659,cat:"Vinos",oferta:false},
+  {name:"Rutini Cabernet Malbec",price:11892,cat:"Vinos",oferta:false},
+  {name:"Famiglia Bianchi Malbec",price:4390,cat:"Vinos",oferta:false},
+  {name:"Caprone de Famiglia",price:3060,cat:"Vinos",oferta:false},
+  {name:"Alma Mora Malbec",price:4332,cat:"Vinos",oferta:false},
+  {name:"Don David Malbec",price:5570,cat:"Vinos",oferta:false},
+  {name:"Fond de Cave Malbec",price:5293,cat:"Vinos",oferta:false},
+  {name:"Trapiche Medalla Malbec",price:11352,cat:"Vinos",oferta:false},
+  {name:"Intocables Rum Blend",price:6307,cat:"Vinos",oferta:false},
+  {name:"Elementos Malbec",price:3760,cat:"Vinos",oferta:false},
+  {name:"Cafayate Malbec",price:3892,cat:"Vinos",oferta:false},
+  {name:"Cafayate Torrontés",price:3892,cat:"Vinos",oferta:false},
+  {name:"Cafayate Syrah",price:3892,cat:"Vinos",oferta:false},
+  {name:"Cafayate Reserva Cabernet",price:5785,cat:"Vinos",oferta:false},
+  {name:"Cafayate Reserva Malbec",price:5785,cat:"Vinos",oferta:false},
+  {name:"Pacheco Pereda Selección Malbec",price:3694,cat:"Vinos",oferta:false},
+  {name:"Pacheco Pereda Selección Rosado",price:2860,cat:"Vinos",oferta:false},
+  {name:"Frida Pinot Grigio Blanco",price:2860,cat:"Vinos",oferta:false},
+  {name:"Argento Malbec Orgánico",price:4428,cat:"Vinos",oferta:false},
+  {name:"Alto Las Hormigas",price:3900,cat:"Vinos",oferta:false},
+  {name:"Latitud Malbec",price:4521,cat:"Vinos",oferta:true},
+  {name:"Latitud Chardonnay",price:4521,cat:"Vinos",oferta:true},
+  {name:"Latitud Cabernet",price:4521,cat:"Vinos",oferta:true},
+  {name:"Altos del Plata Malbec (Terrazas)",price:7208,cat:"Vinos",oferta:false},
+  {name:"Altos del Plata Cabernet (Terrazas)",price:7208,cat:"Vinos",oferta:false},
+  {name:"Altos del Plata Chardonnay (Terrazas)",price:7208,cat:"Vinos",oferta:false},
+  {name:"Terrazas Malbec",price:12830,cat:"Vinos",oferta:false},
+  {name:"Trumpeter Malbec",price:7344,cat:"Vinos",oferta:false},
+  {name:"Postales Robles Malbec",price:2909,cat:"Vinos",oferta:false},
+  {name:"Postales Malbec",price:2633,cat:"Vinos",oferta:false},
+  {name:"Ventus Malbec",price:2633,cat:"Vinos",oferta:false},
+  {name:"Champagne Veuve Clicquot (sin estuche)",price:141072,cat:"Champagne",oferta:false},
+  {name:"Champagne Moët",price:124330,cat:"Champagne",oferta:false},
+  {name:"Champagne Mercier Extra Brut",price:6999,cat:"Champagne",oferta:false},
+  {name:"Champagne Nieto Brut Nature",price:9830,cat:"Champagne",oferta:false},
+  {name:"Champagne Casa Boher Extra Brut",price:15700,cat:"Champagne",oferta:false},
+  {name:"Champagne Mumm Extra Brut",price:6576,cat:"Champagne",oferta:false},
+  {name:"Champagne San Telmo Extra Brut",price:4286,cat:"Champagne",oferta:false},
+  {name:"Champagne Cinzano To Spritz",price:6784,cat:"Champagne",oferta:false},
+  {name:"Champagne Novecento Extra Brut / Dulce",price:3562,cat:"Champagne",oferta:false},
+  {name:"Champagne Chandon Extra Brut",price:13737,cat:"Champagne",oferta:false},
+  {name:"Champagne Chandon Délice",price:13737,cat:"Champagne",oferta:false},
+  {name:"Champagne Chandon Rosé",price:13737,cat:"Champagne",oferta:false},
+  {name:"Champagne Chandon Délice Rosé",price:13737,cat:"Champagne",oferta:false},
+  {name:"Champagne Chandon Extra Brut 187cc",price:4141,cat:"Champagne",oferta:false},
+  {name:"Champagne Baron B Brut Nature",price:36293,cat:"Champagne",oferta:false},
+  {name:"Champagne Baron B Extra Brut",price:27087,cat:"Champagne",oferta:false},
+  {name:"Blenders XLT",price:9046,cat:"Whisky",oferta:true},
+  {name:"Old Smuggler",price:6943,cat:"Whisky",oferta:false},
+  {name:"Ballantines 700cc",price:22269,cat:"Whisky",oferta:false},
+  {name:"Ballantines 1 litro",price:27796,cat:"Whisky",oferta:false},
+  {name:"Ballantines 7 Años 700cc",price:31654,cat:"Whisky",oferta:false},
+  {name:"Ballantines 10 Años 700cc",price:35631,cat:"Whisky",oferta:false},
+  {name:"Ballantines 12 Años 700cc",price:40205,cat:"Whisky",oferta:false},
+  {name:"Chivas 12 1 litro",price:51085,cat:"Whisky",oferta:false},
+  {name:"Chivas 12 700cc",price:39218,cat:"Whisky",oferta:false},
+  {name:"Chivas Extra 13 700cc",price:49021,cat:"Whisky",oferta:false},
+  {name:"Chivas 18 Años",price:116148,cat:"Whisky",oferta:false},
+  {name:"Chivas XV",price:65649,cat:"Whisky",oferta:false},
+  {name:"Chivas Royal Salute",price:224289,cat:"Whisky",oferta:false},
+  {name:"Chivas Mizunara",price:80705,cat:"Whisky",oferta:false},
+  {name:"Jameson 700cc",price:24669,cat:"Whisky",oferta:false},
+  {name:"Jameson 1 litro",price:33451,cat:"Whisky",oferta:true},
+  {name:"Jameson Black Barrel",price:41802,cat:"Whisky",oferta:false},
+  {name:"Jameson Caskmates IPA",price:28095,cat:"Whisky",oferta:false},
+  {name:"The Glenlivet 15 Años",price:129740,cat:"Whisky",oferta:false},
+  {name:"Aberlour",price:56367,cat:"Whisky",oferta:false},
+  {name:"Johnnie Walker Black 1 litro",price:51200,cat:"Whisky",oferta:true},
+  {name:"Johnnie Walker Black 750cc",price:45000,cat:"Whisky",oferta:false},
+  {name:"Johnnie Walker Red 1 litro",price:28874,cat:"Whisky",oferta:false},
+  {name:"Johnnie Walker Red 750cc",price:23236,cat:"Whisky",oferta:false},
+  {name:"Johnnie Walker Double Black",price:51211,cat:"Whisky",oferta:false},
+  {name:"Johnnie Walker 18 Años",price:170010,cat:"Whisky",oferta:false},
+  {name:"Johnnie Walker Gold Reserve",price:75276,cat:"Whisky",oferta:true},
+  {name:"Johnnie Walker Blue Label",price:326300,cat:"Whisky",oferta:false},
+  {name:"Jack Daniels Old No.7 700cc",price:32726,cat:"Whisky",oferta:true},
+  {name:"Jack Daniels Honey 700cc",price:32726,cat:"Whisky",oferta:true},
+  {name:"Jack Daniels Apple 700cc",price:32726,cat:"Whisky",oferta:true},
+  {name:"Jack Daniels Fire 700cc",price:32726,cat:"Whisky",oferta:true},
+  {name:"Jack Daniels 1 litro",price:43000,cat:"Whisky",oferta:false},
+  {name:"Jack Daniels Gentleman 700cc",price:52000,cat:"Whisky",oferta:false},
+  {name:"Jack Daniels Single Barrel",price:75000,cat:"Whisky",oferta:false},
+  {name:"Buchanans",price:48801,cat:"Whisky",oferta:false},
+  {name:"Caol Ila",price:115992,cat:"Whisky",oferta:false},
+  {name:"Talisker",price:109166,cat:"Whisky",oferta:false},
+  {name:"Old Parr",price:40600,cat:"Whisky",oferta:false},
+  {name:"White Horse",price:13534,cat:"Whisky",oferta:false},
+  {name:"J&B",price:20430,cat:"Whisky",oferta:false},
+  {name:"Macallan Triple Cask",price:158647,cat:"Whisky",oferta:false},
+  {name:"Macallan Double Cask",price:158647,cat:"Whisky",oferta:false},
+  {name:"Glenmorangie 10 Años",price:84999,cat:"Whisky",oferta:false},
+  {name:"Gin Bombay 700cc",price:23845,cat:"Gin",oferta:false},
+  {name:"Gin Bulldog",price:20159,cat:"Gin",oferta:true},
+  {name:"Gin Beefeater 1 litro",price:21684,cat:"Gin",oferta:false},
+  {name:"Gin Beefeater 700cc",price:18254,cat:"Gin",oferta:false},
+  {name:"Gin Brighton",price:7003,cat:"Gin",oferta:false},
+  {name:"Gin Burnets",price:7849,cat:"Gin",oferta:true},
+  {name:"Gin Aconcagua London Dry Azul",price:11542,cat:"Gin",oferta:false},
+  {name:"Gin Tanqueray London Dry",price:23288,cat:"Gin",oferta:false},
+  {name:"Gin Gordons",price:11064,cat:"Gin",oferta:false},
+  {name:"Gin El Profeta",price:8000,cat:"Gin",oferta:true},
+  {name:"Gin Heraclito London Dry 700cc",price:11152,cat:"Gin",oferta:false},
+  {name:"Gin Heraclito Macedonio",price:11152,cat:"Gin",oferta:false},
+  {name:"Ginebra Llave de Peters",price:4946,cat:"Gin",oferta:false},
+  {name:"Absolut Común",price:17311,cat:"Vodka",oferta:false},
+  {name:"Absolut Saborizado",price:19174,cat:"Vodka",oferta:false},
+  {name:"Vodka Belvedere",price:62768,cat:"Vodka",oferta:false},
+  {name:"Smirnoff Común",price:7104,cat:"Vodka",oferta:false},
+  {name:"Smirnoff Saborizado",price:7817,cat:"Vodka",oferta:false},
+  {name:"Vodka Sernova",price:4750,cat:"Vodka",oferta:true},
+  {name:"Vodka Skyy Regular",price:6799,cat:"Vodka",oferta:true},
+  {name:"Vodka Skyy Blood Orange",price:6499,cat:"Vodka",oferta:true},
+  {name:"Vodka Skyy Cosmic",price:7550,cat:"Vodka",oferta:true},
+  {name:"Vodka Skyy Pineapple / Apricot",price:7550,cat:"Vodka",oferta:false},
+  {name:"Vodka Skyy Raspberry",price:7550,cat:"Vodka",oferta:false},
+  {name:"Vodka Grey Goose 700cc",price:75000,cat:"Vodka",oferta:false},
+  {name:"Vodka Nuvo",price:61288,cat:"Vodka",oferta:true},
+  {name:"Vodka Wyborowa Raspberry",price:5507,cat:"Vodka",oferta:false},
+  {name:"Vodka 67 de Peters",price:3197,cat:"Vodka",oferta:false},
+  {name:"Vodka Nikov x litro",price:4189,cat:"Vodka",oferta:false},
+  {name:"Fernet Branca 750cc",price:14110,cat:"Fernet",oferta:false},
+  {name:"Fernet Branca 1 litro",price:18808,cat:"Fernet",oferta:false},
+  {name:"Fernet Branca Mini 50cc",price:3412,cat:"Fernet",oferta:false},
+  {name:"Fernet Branca 450cc",price:9545,cat:"Fernet",oferta:false},
+  {name:"Fernet Branca Menta 750cc",price:9681,cat:"Fernet",oferta:false},
+  {name:"Fernet Bühero",price:7370,cat:"Fernet",oferta:false},
+  {name:"Fernet 1882",price:8454,cat:"Fernet",oferta:true},
+  {name:"Fernet Vittone",price:4999,cat:"Fernet",oferta:false},
+  {name:"Ron Bacardí Blanco 980cc",price:16082,cat:"Ron",oferta:true},
+  {name:"Ron Bacardí Oro 980cc",price:17404,cat:"Ron",oferta:true},
+  {name:"Ron Bacardí Oro y Blanco 750cc",price:14650,cat:"Ron",oferta:false},
+  {name:"Ron Havana 3 Años (Blanco)",price:12322,cat:"Ron",oferta:false},
+  {name:"Ron Havana Oro Especial",price:13154,cat:"Ron",oferta:false},
+  {name:"Ron Jamaica 1 litro",price:6833,cat:"Ron",oferta:false},
+  {name:"Aperol 750cc",price:8572,cat:"Aperitivos",oferta:true},
+  {name:"Campari 1 litro",price:11279,cat:"Aperitivos",oferta:true},
+  {name:"Campari 750cc",price:8572,cat:"Aperitivos",oferta:false},
+  {name:"Cynar",price:7555,cat:"Aperitivos",oferta:false},
+  {name:"Cinzano",price:6154,cat:"Aperitivos",oferta:false},
+  {name:"Punt e Mes",price:5183,cat:"Aperitivos",oferta:false},
+  {name:"Carpano Bianco",price:6232,cat:"Aperitivos",oferta:false},
+  {name:"Carpano Rosso",price:6232,cat:"Aperitivos",oferta:false},
+  {name:"Gancia 950cc",price:6196,cat:"Aperitivos",oferta:false},
+  {name:"Martini Bianco",price:6447,cat:"Aperitivos",oferta:false},
+  {name:"Martini Dry",price:9375,cat:"Aperitivos",oferta:false},
+  {name:"Martini Rosso",price:6717,cat:"Aperitivos",oferta:false},
+  {name:"Ramazzotti Rosatto",price:7567,cat:"Aperitivos",oferta:false},
+  {name:"Gancia Hibiscus",price:7080,cat:"Aperitivos",oferta:false},
+  {name:"Amargo Obrero",price:4441,cat:"Aperitivos",oferta:false},
+  {name:"Cerveza Heineken Porrón x24",price:55775,cat:"Latas",oferta:false},
+  {name:"Cerveza Brahma Lata 710cc x16",price:39634,cat:"Latas",oferta:false},
+  {name:"Red Bull 250cc x24 latas",price:50000,cat:"Latas",oferta:false},
+  {name:"Cerveza Stella Lata 473cc x24",price:48300,cat:"Latas",oferta:false},
+  {name:"Champagne Mumm Lata 269cc",price:2027,cat:"Latas",oferta:false},
+  {name:"Lata Hibiscus Gancia 473cc",price:1948,cat:"Latas",oferta:false},
+  {name:"Lata Gancia Sin Alcohol 473cc",price:1667,cat:"Latas",oferta:false},
+  {name:"Lata Dr Lemon 473cc",price:1766,cat:"Latas",oferta:false},
+  {name:"Lata Dr Lemon con Vodka 473cc",price:1766,cat:"Latas",oferta:false},
+  {name:"Tequila Cuervo Dorado y Blanco",price:37282,cat:"Licores",oferta:false},
+  {name:"Malibu",price:12513,cat:"Licores",oferta:false},
+  {name:"Licor Tía María",price:7040,cat:"Licores",oferta:false},
+  {name:"Licor Jägermeister",price:28750,cat:"Licores",oferta:false},
+  {name:"Licor Schwartzhog 700cc",price:16968,cat:"Licores",oferta:false},
+  {name:"Licor Amarula",price:23800,cat:"Licores",oferta:false},
+  {name:"Licor Baileys",price:24893,cat:"Licores",oferta:false},
+  {name:"Licor Sheridan",price:34493,cat:"Licores",oferta:false},
+  {name:"Licor St Germain",price:78504,cat:"Licores",oferta:false},
+  {name:"Coñac Reserva San Juan",price:7643,cat:"Licores",oferta:false},
+  {name:"Coñac Remy Martin Extra",price:1390000,cat:"Licores",oferta:false},
+  {name:"Tequila Patrón Silver 750cc",price:124523,cat:"Licores",oferta:false},
+  {name:"Tequila Patrón Reposado 750cc",price:134648,cat:"Licores",oferta:false},
+  {name:"Tequila Sol Azteca de Peters",price:4719,cat:"Licores",oferta:false},
+  {name:"Cachaça Velho Barreiro",price:5794,cat:"Licores",oferta:false},
+  {name:"Cachaça Capoeira",price:4157,cat:"Licores",oferta:false},
+];
+
+// ── STORAGE ──
+function getClientes(){try{return JSON.parse(localStorage.getItem("caremi_clientes")||"[]")}catch(e){return[]}}
+function saveClientes(a){localStorage.setItem("caremi_clientes",JSON.stringify(a))}
+function getAdminPass(){return localStorage.getItem("caremi_admin_pass")||ADMIN_PASS_DEFAULT}
+function saveAdminPass(p){localStorage.setItem("caremi_admin_pass",p)}
+
+// ── LOGIN ──
+function doLogin(){
+  const val=document.getElementById("login-input").value.trim();
+  const err=document.getElementById("login-error");
+  if(!val){err.style.display="block";return}
+  const c=getClientes().find(c=>String(c.nro).toLowerCase()===val.toLowerCase());
+  if(!c){err.style.display="block";return}
+  err.style.display="none";
+  sessionStorage.setItem("caremi_session",JSON.stringify(c));
+  startApp(c);
+}
+function doLogout(){
+  sessionStorage.removeItem("caremi_session");
+  document.getElementById("screen-app").style.display="none";
+  document.getElementById("screen-login").style.display="flex";
+  document.getElementById("login-input").value="";
+  cart={};
+}
+
+// ── ADMIN ──
+function showAdmin(){
+  const pass=prompt("Contraseña de administrador:");
+  if(pass===null)return;
+  if(pass!==getAdminPass()){alert("Contraseña incorrecta.");return}
+  document.getElementById("screen-login").style.display="none";
+  document.getElementById("screen-admin").style.display="block";
+  renderAdminTable("");
+}
+function exitAdmin(){
+  document.getElementById("screen-admin").style.display="none";
+  document.getElementById("screen-login").style.display="flex";
+}
+function renderAdminTable(search){
+  const cl=getClientes();
+  const f=cl.filter(c=>!search||c.nro.toLowerCase().includes(search.toLowerCase())||c.nombre.toLowerCase().includes(search.toLowerCase())||c.vendedor.toLowerCase().includes(search.toLowerCase()));
+  document.getElementById("clientes-count").innerHTML=`<strong>${cl.length}</strong> registrados`;
+  const w=document.getElementById("admin-table-wrap");
+  if(!cl.length){w.innerHTML='<p class="empty-admin">No hay clientes cargados todavía.</p>';return}
+  if(!f.length){w.innerHTML='<p class="empty-admin">Sin resultados.</p>';return}
+  w.innerHTML=`<table class="admin-table"><thead><tr><th>N° cliente</th><th>Nombre y apellido</th><th>Vendedor</th><th></th></tr></thead><tbody>${
+    f.map(c=>`<tr><td>${c.nro}</td><td>${c.nombre}</td><td>${c.vendedor}</td><td><button class="btn-del" onclick="deleteCliente('${c.nro}')">Eliminar</button></td></tr>`).join("")
+  }</tbody></table>`;
+}
+function addClienteManual(){
+  const nro=document.getElementById("add-nro").value.trim();
+  const nombre=document.getElementById("add-nombre").value.trim();
+  const vendedor=document.getElementById("add-vendedor").value.trim();
+  const st=document.getElementById("add-status");
+  if(!nro||!nombre||!vendedor){showStatus(st,"Completá todos los campos.",false);return}
+  const cl=getClientes();
+  if(cl.find(c=>String(c.nro).toLowerCase()===nro.toLowerCase())){showStatus(st,`El número ${nro} ya existe.`,false);return}
+  cl.push({nro,nombre,vendedor});saveClientes(cl);
+  document.getElementById("add-nro").value="";
+  document.getElementById("add-nombre").value="";
+  document.getElementById("add-vendedor").value="";
+  renderAdminTable("");
+  showStatus(st,`Cliente ${nro} — ${nombre} agregado.`,true);
+}
+function deleteCliente(nro){
+  if(!confirm(`¿Eliminar al cliente ${nro}?`))return;
+  saveClientes(getClientes().filter(c=>c.nro!==nro));
+  renderAdminTable("");
+}
+function clearAll(){
+  if(!confirm("¿Borrar TODOS los clientes? No se puede deshacer."))return;
+  saveClientes([]);renderAdminTable("");
+}
+function changePass(){
+  const np=document.getElementById("new-pass").value.trim();
+  const st=document.getElementById("pass-status");
+  if(!np||np.length<4){showStatus(st,"Mínimo 4 caracteres.",false);return}
+  saveAdminPass(np);document.getElementById("new-pass").value="";
+  showStatus(st,"Contraseña actualizada.",true);
+}
+function showStatus(el,msg,ok){
+  el.textContent=msg;el.className="status-msg "+(ok?"status-ok":"status-err");el.style.display="block";
+  setTimeout(()=>{el.style.display="none"},4000);
+}
+
+// ── IMPORT EXCEL ──
+function importFile(input){
+  const file=input.files[0];if(!file)return;
+  const st=document.getElementById("import-status");
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      let rows=[];
+      if(file.name.endsWith(".csv")){
+        const lines=e.target.result.split("\n").filter(l=>l.trim());
+        const headers=lines[0].split(/[,;]/).map(h=>h.trim().toUpperCase().replace(/[^A-Z0-9_]/g,""));
+        for(let i=1;i<lines.length;i++){
+          const cols=lines[i].split(/[,;]/);const obj={};
+          headers.forEach((h,j)=>obj[h]=(cols[j]||"").trim().replace(/^"|"$/g,""));rows.push(obj);
+        }
+      }else{
+        const wb=XLSX.read(e.target.result,{type:"binary"});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        rows=XLSX.utils.sheet_to_json(ws,{defval:""}).map(r=>{
+          const out={};Object.keys(r).forEach(k=>out[k.trim().toUpperCase().replace(/[^A-Z0-9_]/g,"")]=String(r[k]).trim());return out;
+        });
+      }
+      const cl=getClientes();let added=0,skipped=0;
+      rows.forEach(r=>{
+        const nro=(r["NRO_CLIENTE"]||r["NROCLIENTE"]||r["NRO"]||r["NUMERO"]||"").trim();
+        const nombre=(r["NOMBRE"]||r["NOMBRE_APELLIDO"]||"").trim();
+        const vendedor=(r["VENDEDOR"]||"Sin asignar").trim();
+        if(!nro||!nombre){skipped++;return}
+        if(cl.find(c=>String(c.nro).toLowerCase()===nro.toLowerCase())){skipped++;return}
+        cl.push({nro,nombre,vendedor});added++;
+      });
+      saveClientes(cl);renderAdminTable("");
+      showStatus(st,`Importación OK: ${added} agregados${skipped?`, ${skipped} omitidos`:""}`,true);
+    }catch(err){showStatus(st,"Error al leer el archivo. Verificá el formato.",false)}
+    input.value="";
+  };
+  if(file.name.endsWith(".csv"))reader.readAsText(file);else reader.readAsBinaryString(file);
+}
+function downloadTemplate(){
+  const ws=XLSX.utils.aoa_to_sheet([["NRO_CLIENTE","NOMBRE","VENDEDOR"],["1001","Juan García","María López"],["1002","Ana Rodríguez","Carlos Fernández"]]);
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Clientes");
+  XLSX.writeFile(wb,"plantilla_clientes_caremi.xlsx");
+}
+function exportClientes(){
+  const cl=getClientes();if(!cl.length){alert("No hay clientes para exportar.");return}
+  const ws=XLSX.utils.aoa_to_sheet([["NRO_CLIENTE","NOMBRE","VENDEDOR"],...cl.map(c=>[c.nro,c.nombre,c.vendedor])]);
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Clientes");
+  XLSX.writeFile(wb,"clientes_caremi.xlsx");
+}
+
+// ── APP PEDIDOS ──
+let cart={},currentCat="Todos",currentSearch="";
+const fmt=n=>"$"+n.toLocaleString("es-AR");
+
+function startApp(cliente){
+  document.getElementById("screen-login").style.display="none";
+  document.getElementById("screen-app").style.display="block";
+  document.getElementById("app-fecha").textContent=FECHA_LISTA;
+  document.getElementById("user-nro").textContent=cliente.nro;
+  document.getElementById("user-nombre").textContent=cliente.nombre;
+  document.getElementById("user-vendedor").textContent=cliente.vendedor;
+  document.getElementById("f-nombre").value=cliente.nombre;
+  document.getElementById("f-nrocliente").value=cliente.nro;
+  document.getElementById("f-vendedor").value=cliente.vendedor;
+  cart={};currentCat="Todos";currentSearch="";
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.textContent==="Todos"));
+  renderProducts();renderCart();
+}
+function renderProducts(){
+  const grid=document.getElementById("products-grid");
+  const f=PRODUCTS.filter(p=>(currentCat==="Todos"||p.cat===currentCat)&&p.name.toLowerCase().includes(currentSearch.toLowerCase()));
+  if(!f.length){grid.innerHTML='<p style="color:#999;font-size:13px;padding:1rem;font-family:Georgia,serif">No se encontraron productos.</p>';return}
+  grid.innerHTML=f.map(p=>{
+    const idx=PRODUCTS.indexOf(p),qty=cart[idx]||0;
+    return`<div class="product-card"><div class="cat-badge">${p.cat}</div>${p.oferta?'<span class="product-oferta">Oferta</span>':''}<div class="product-name">${p.name}</div><div class="product-price">${fmt(p.price)}</div><div class="qty-row"><button class="qty-btn" onclick="updateCart(${idx},-1)">−</button><span class="qty-display">${qty}</span><button class="qty-btn" onclick="updateCart(${idx},1)">+</button></div></div>`;
+  }).join("");
+}
+function updateCart(idx,delta){
+  cart[idx]=Math.max(0,(cart[idx]||0)+delta);if(!cart[idx])delete cart[idx];
+  renderProducts();renderCart();
+}
+function renderCart(){
+  const keys=Object.keys(cart);
+  const el=document.getElementById("cart-items"),tot=document.getElementById("cart-total");
+  if(!keys.length){el.innerHTML='<p class="cart-empty">Todavía no agregaste productos.</p>';tot.style.display="none";return}
+  let total=0;
+  el.innerHTML=keys.map(k=>{const p=PRODUCTS[k],sub=p.price*cart[k];total+=sub;return`<div class="cart-item"><span class="cart-item-name">${p.name}</span><span class="cart-item-qty">x${cart[k]}</span><span class="cart-item-price">${fmt(sub)}</span></div>`;}).join("");
+  tot.style.display="flex";document.getElementById("total-price").textContent=fmt(total);
+}
+function filterCat(cat){currentCat=cat;document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.textContent===cat));renderProducts();}
+function filterSearch(v){currentSearch=v;renderProducts();}
+
+function sendOrder(){
+  const v=id=>document.getElementById(id).value.trim();
+  const nombre=v("f-nombre"),nrocliente=v("f-nrocliente"),vendedor=v("f-vendedor");
+  const dni=v("f-dni"),direccion=v("f-direccion"),telefono=v("f-telefono"),email=v("f-email"),notas=v("f-notas");
+  if(!dni||!direccion||!telefono||!email){alert("Completá DNI, dirección, teléfono y email.");return}
+  if(!Object.keys(cart).length){alert("Agregá al menos un producto.");return}
+  const btn=document.getElementById("send-btn");btn.disabled=true;btn.textContent="Preparando...";
+  const items=Object.keys(cart).map(k=>({name:PRODUCTS[k].name,qty:cart[k],sub:PRODUCTS[k].price*cart[k]}));
+  const total=items.reduce((s,i)=>s+i.sub,0);
+  const orderText=items.map(i=>`- ${i.name} x${i.qty} = ${fmt(i.sub)}`).join("\n");
+  const subject=`Pedido CAREMI — Cliente ${nrocliente} — ${nombre} — ${fmt(total)}`;
+  const body=`PEDIDO CAREMI — Lista: ${FECHA_LISTA}\n${"=".repeat(48)}\n\nDATOS DEL CLIENTE:\nN° de cliente: ${nrocliente}\nNombre y apellido: ${nombre}\nVendedor: ${vendedor}\nDNI: ${dni}\nDirección: ${direccion}\nTeléfono: ${telefono}\nEmail: ${email}${notas?"\nNotas: "+notas:""}\n\nPRODUCTOS:\n${orderText}\n\n${"=".repeat(48)}\nTOTAL ESTIMADO: ${fmt(total)}\n${"=".repeat(48)}`;
+  window.location.href=`mailto:${EMAIL_DESTINO}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  document.getElementById("success-banner").style.display="block";
+  cart={};renderCart();renderProducts();
+  btn.disabled=false;btn.textContent="Enviar pedido";
+}
+
+// ── INIT ──
+const _sess=sessionStorage.getItem("caremi_session");
+if(_sess){try{startApp(JSON.parse(_sess))}catch(e){sessionStorage.removeItem("caremi_session")}}
+
+// drag & drop
+const dz=document.getElementById("drop-zone");
+if(dz){
+  dz.addEventListener("dragover",e=>{e.preventDefault();dz.style.borderColor="#111"});
+  dz.addEventListener("dragleave",()=>{dz.style.borderColor="#aaa"});
+  dz.addEventListener("drop",e=>{
+    e.preventDefault();dz.style.borderColor="#aaa";
+    const f=e.dataTransfer.files[0];
+    if(f){const inp=document.getElementById("file-upload");inp.files=e.dataTransfer.files;importFile(inp)}
+  });
+}
+</script>
+</body>
+</html>
